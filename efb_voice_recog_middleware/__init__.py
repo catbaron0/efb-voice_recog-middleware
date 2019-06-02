@@ -89,39 +89,12 @@ class VoiceRecogMiddleware(EFBMiddleware):
         shutil.copyfileobj(message.file, audio)
         audio.file.seek(0)
         message.file.file.seek(0)
-        reply_text = '\n'.join(self.recognize(audio, self.lang))
+        try:
+            reply_text = '\n'.join(self.recognize(audio, self.lang))
+        except:
+            return message
         message.text += reply_text
         return message
-
-        
-        # msg_text = message.text.strip()
-        # print(message.__dict__)
-        # if getattr(message, "target", None) and msg_text.startswith(self.command):
-        #     print(message.target.__dict__)
-        #     self.logger.debug('Replied to a message: %s', message.target.type)
-        #     lang = msg_text.split('`')[1]
-        #     if not lang:
-        #         lang = self.default_lang
-
-        #     if message.target.type != MsgType.Audio:
-        #         reply_text = 'The replied message type need to be MsgType.Audio, but %s was found' % message.target.type
-        #         self.logger.error(reply_text)
-        #     else:
-        #         audio = message.target.file
-        #         reply_text = '\n'.join(self.recognize(audio, lang))
-        #     audio = message.target.file
-        #     reply_text = '\n'.join(self.recognize(audio, lang))
-
-        #     msg: EFBMsg = EFBMsg()
-        #     msg.chat = message.target.chat
-        #     msg.author = message.author
-        #     msg.deliver_to = coordinator.master
-        #     msg.type = MsgType.Text
-        #     msg.uid = message.uid
-        #     msg.text = reply_text
-        #     return msg
-        # else:
-        #     return message
 
 class SpeechEngine(ABC):
     """Name of the speech recognition engine"""
