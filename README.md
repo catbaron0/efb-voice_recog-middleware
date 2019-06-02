@@ -43,7 +43,7 @@ You only need to add the last line to your config file.
 
 * Config the middleware
 
-Edit the config `$HOME/.ehforwarderbot/profiles/default/catbaron.voice_recog`
+The config file by default is `$HOME/.ehforwarderbot/profiles/default/catbaron.voice_recog`. Edit it as:
 
 ```
 speech_api:
@@ -53,5 +53,7 @@ speech_api:
 
 language: zh
 ```
+
+Replace the `API_KEY` and `SECRET_KEY` to your own.
 
 * Restart EFB.
