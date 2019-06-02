@@ -59,8 +59,8 @@ You only need to add the last line to your config file.
 -  Config the middleware
 
 The config file by default is
-``$HOME/.ehforwarderbot/profiles/default/catbaron.voice_recog``. Edit it
-as:
+``$HOME/.ehforwarderbot/profiles/default/catbaron.voice_recog``. Please
+create the config file if thers is not one. Edit it as:
 
 ::
 
