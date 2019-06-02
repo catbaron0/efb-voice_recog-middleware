@@ -92,6 +92,7 @@ class VoiceRecogMiddleware(EFBMiddleware):
         try:
             reply_text = '\n'.join(self.recognize(audio, self.lang))
         except:
+            message.text += 'Failed to recognize voice content.'
             return message
         message.text += reply_text
         return message
