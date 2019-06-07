@@ -1,77 +1,80 @@
 # coding: utf-8
 import base64
-import io
 import logging
 import os
 import tempfile
 import requests
 from tempfile import NamedTemporaryFile
-from typing import IO, Any, Dict, Optional, List
+from typing import IO, Any, Dict, Optional, List, BinaryIO
 
 import yaml
 import pydub
 import shutil
 
-from ehforwarderbot import EFBMiddleware, EFBMsg, MsgType
+from ehforwarderbot import EFBMiddleware, EFBMsg, MsgType, EFBChat
 from ehforwarderbot.utils import get_config_path
 from . import __version__ as version
 from abc import ABC, abstractmethod
+
 
 class VoiceRecogMiddleware(EFBMiddleware):
     """
     EFB Middleware - Voice recognize middleware
     Convert voice mesage replied by user to text message.
-    The codes are maily from efb_telegram_master.VoiceRecognitionManager by@blueset
-
     Author: Catbaron <https://github.com/catbaron>
     """
 
-    middleware_id = "catbaron.voice_recog"
-    middleware_name = "Voice Recognition Middle"
+    middleware_id: str = "catbaron.voice_recog"
+    middleware_name: str = "Voice Recognition Middle"
     __version__ = version.__version__
-    logger: logging.Logger = logging.getLogger("plugins.%s.VoiceRecogMIddleware" % middleware_id)
+    logger: logging.Logger = logging.getLogger(
+        "plugins.%s.VoiceRecogMIddleware" % middleware_id)
 
-    voice_engines = []
+    voice_engines: List = []
 
-    def __init__(self, instance_id=None):
+    def __init__(self, instance_id: str = None):
         super().__init__()
         self.config: Dict[str: Any] = self.load_config()
         tokens: Dict[str, Any] = self.config.get("speech_api", dict())
-        # self.command = self.config.get("command", 'recog`')
-        self.lang = self.config.get('language', 'zh')
+        self.lang: str = self.config.get('language', 'zh')
 
         if "baidu" in tokens:
-            self.voice_engines.append(BaiduSpeech(channel=1, key_dict = tokens['baidu']))
+            self.voice_engines.append(
+                BaiduSpeech(channel=1, key_dict=tokens['baidu'])
+                )
 
-    def load_config(self):
-        config_path = get_config_path(self.middleware_id)
+    def load_config(self) -> Optional[Dict]:
+        config_path: str = get_config_path(self.middleware_id)
         if not os.path.exists(config_path):
             self.logger.info('The configure file does not exist!')
             return
         with open(config_path, 'r') as f:
-            d = yaml.load(f)
+            d: Dict[str, str] = yaml.load(f)
             if not d:
                 self.logger.info('Load configure file failed!')
                 return
             return d
 
-    def recognize(self, file, lang):
+    def recognize(self, file: BinaryIO, lang: str) -> List[str]:
         '''
         Recognize the audio file to text.
         Args:
-            file: An andio file. It should be FILE object in 'rb' mode or string of path to the audio file.
+            file: An andio file. It should be FILE object in 'rb'
+                  mode or string of path to the audio file.
         '''
-        # results = OrderedDict()
-        # for e in self.voice_engines:
-            # results["%s (%s)" % (e.engine_name, args[0])] = e.recognize(file.name, args[0])
-        results = ["%s (%s): %s" % (e.engine_name, lang, e.recognize(file, lang)) for e in self.voice_engines]
+        results = [f'{e.engine_name} ({lang}): {e.recognize(file, lang)}'
+                   for e in self.voice_engines]
         return results
-            
-    def sent_by_master(self, message: EFBMsg) -> bool:
-        author = message.author
-        if author and author.module_id and author.module_id == 'blueset.telegram':
-            return True
-        else:
+
+    @staticmethod
+    def sent_by_master(message: EFBMsg) -> bool:
+        author: EFBChat = message.author
+        try:
+            if author.module_id == 'blueset.telegram':
+                return True
+            else:
+                return False
+        except Exception:
             return False
 
     def process_message(self, message: EFBMsg) -> Optional[EFBMsg]:
@@ -85,17 +88,18 @@ class VoiceRecogMiddleware(EFBMiddleware):
         if self.sent_by_master(message) or message.type != MsgType.Audio:
             return message
 
-        audio = NamedTemporaryFile()
+        audio: BinaryIO = NamedTemporaryFile()
         shutil.copyfileobj(message.file, audio)
         audio.file.seek(0)
         message.file.file.seek(0)
         try:
-            reply_text = '\n'.join(self.recognize(audio, self.lang))
-        except:
+            reply_text: str = '\n'.join(self.recognize(audio, self.lang))
+        except Exception:
             message.text += 'Failed to recognize voice content.'
             return message
         message.text += reply_text
         return message
+
 
 class SpeechEngine(ABC):
     """Name of the speech recognition engine"""
@@ -107,14 +111,15 @@ class SpeechEngine(ABC):
     def recognize(self, file: IO[bytes], lang: str):
         raise NotImplementedError()
 
+
 class BaiduSpeech(SpeechEngine):
-    key_dict = None
-    access_token = None
+    key_dict: Dict[str, str] = None
+    access_token: str = None
     full_token = None
-    engine_name = "Baidu"
+    engine_name: str = "Baidu"
     lang_list = ['zh', 'ct', 'en']
 
-    def __init__(self, channel, key_dict):
+    def __init__(self, channel: int, key_dict: Dict[str, str]):
         self.channel = channel
         self.key_dict = key_dict
         d = {
@@ -122,8 +127,11 @@ class BaiduSpeech(SpeechEngine):
             "client_id": key_dict['api_key'],
             "client_secret": key_dict['secret_key']
         }
-        r = requests.post("https://openapi.baidu.com/oauth/2.0/token", data=d).json()
-        self.access_token = r['access_token']
+        r = requests.post(
+            "https://openapi.baidu.com/oauth/2.0/token",
+            data=d
+            ).json()
+        self.access_token: str = r['access_token']
         self.full_token = r
 
     def recognize(self, file, lang):
@@ -132,7 +140,10 @@ class BaiduSpeech(SpeechEngine):
         elif isinstance(file, str):
             file = open(file, 'rb')
         else:
-            return ["ERROR!", "File must be a path string or a file object in `rb` mode."]
+            return [
+                "ERROR!", 
+                "File must be a path string or a file object in `rb` mode."
+                ]
         if lang.lower() not in self.lang_list:
             return ["ERROR!", "Invalid language."]
 
@@ -154,6 +165,7 @@ class BaiduSpeech(SpeechEngine):
             return '\n'.join(rjson['result'])
         else:
             return ["ERROR!", rjson['err_msg']]
+
 
 class BingSpeech(SpeechEngine):
     keys = None
