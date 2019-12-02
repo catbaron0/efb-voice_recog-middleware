@@ -11,7 +11,7 @@ import yaml
 import pydub
 import shutil
 
-from ehforwarderbot import EFBMiddleware, EFBMsg, MsgType, EFBChat
+from ehforwarderbot import coordinator, EFBMiddleware, EFBMsg, MsgType, EFBChat
 from ehforwarderbot.utils import get_config_path
 from . import __version__ as version
 from abc import ABC, abstractmethod
@@ -68,14 +68,7 @@ class VoiceRecogMiddleware(EFBMiddleware):
 
     @staticmethod
     def sent_by_master(message: EFBMsg) -> bool:
-        author: EFBChat = message.author
-        try:
-            if author.module_id == 'blueset.telegram':
-                return True
-            else:
-                return False
-        except Exception:
-            return False
+        return message.deliver_to == coordinator.master
 
     def process_message(self, message: EFBMsg) -> Optional[EFBMsg]:
         """
