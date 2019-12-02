@@ -6,7 +6,7 @@ Notice
 
 **Middleware ID**: ``catbaron.voice_recog``
 
-**LinkPreview** is a middleware for EFB to recognize content of voice
+**VoiceRecogMiddleware** is a middleware for EFB to recognize content of voice
 message. This middleware is modified based on ``ehForwarderBot 1.0``
 
 .. figure:: ./example.jpg
@@ -24,8 +24,8 @@ message. This middleware is modified based on ``ehForwarderBot 1.0``
 Dependense
 ----------
 
--  Python >=3.6
--  EFB >=2.0.0b15
+-  Python >= 3.6
+-  EFB >= 2.0.0b15
 -  pydub
 
 Install and configuration
@@ -52,7 +52,7 @@ Install and configuration
     - bar.dummy
     middlewares:
     - foo.other_middlewares
-    - catbaron.link_preview
+    - catbaron.voice_recog
 
 You only need to add the last line to your config file.
 
