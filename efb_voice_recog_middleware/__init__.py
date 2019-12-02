@@ -4,6 +4,8 @@ import logging
 import os
 import tempfile
 import requests
+import copy
+import threading
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import IO, Any, Dict, Optional, List, BinaryIO
@@ -60,7 +62,7 @@ class VoiceRecogMiddleware(EFBMiddleware):
         '''
         Recognize the audio file to text.
         Args:
-            file: An andio file. It should be FILE object in 'rb'
+            file: An audio file. It should be FILE object in 'rb'
                   mode or string of path to the audio file.
         '''
         results = [f'{e.engine_name} ({lang}): {e.recognize(file, lang)}'
@@ -86,13 +88,29 @@ class VoiceRecogMiddleware(EFBMiddleware):
         shutil.copyfileobj(message.file, audio)
         audio.file.seek(0)
         message.file.file.seek(0)
+        edited = copy.copy(EFBMsg)
+
+        threading.Thread(
+            target=self.process_audio, 
+            args=(edit, audio), 
+            name=f"VoiceRecog thread {message.uid}"
+            ).start()
+
+        return message
+    
+    def process_audio(self, message: EFBMsg, audio: BinaryIO):
         try:
             reply_text: str = '\n'.join(self.recognize(audio, self.lang))
         except Exception:
-            message.text += 'Failed to recognize voice content.'
+            reply_text = 'Failed to recognize voice content.'
             return message
         message.text += reply_text
-        return message
+
+        message.file = None
+        message.edit = True
+        message.edit_media = False
+        coordinator.send_message(message)
+
 
 
 class SpeechEngine(ABC):
