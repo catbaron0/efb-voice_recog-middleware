@@ -4,6 +4,7 @@ import logging
 import os
 import tempfile
 import requests
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import IO, Any, Dict, Optional, List, BinaryIO
 
@@ -44,12 +45,12 @@ class VoiceRecogMiddleware(EFBMiddleware):
                 )
 
     def load_config(self) -> Optional[Dict]:
-        config_path: str = get_config_path(self.middleware_id)
-        if not os.path.exists(config_path):
+        config_path: Path = get_config_path(self.middleware_id)
+        if not config_path.exists():
             self.logger.info('The configure file does not exist!')
             return
-        with open(config_path, 'r') as f:
-            d: Dict[str, str] = yaml.load(f)
+        with config_path.open('r') as f:
+            d: Dict[str, Any] = yaml.load(f)
             if not d:
                 self.logger.info('Load configure file failed!')
                 return
