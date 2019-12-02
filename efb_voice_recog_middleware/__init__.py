@@ -25,10 +25,10 @@ class VoiceRecogMiddleware(EFBMiddleware):
     """
 
     middleware_id: str = "catbaron.voice_recog"
-    middleware_name: str = "Voice Recognition Middle"
+    middleware_name: str = "Voice Recognition Middleware"
     __version__ = version.__version__
     logger: logging.Logger = logging.getLogger(
-        "plugins.%s.VoiceRecogMIddleware" % middleware_id)
+        "plugins.%s.VoiceRecogMiddleware" % middleware_id)
 
     voice_engines: List = []
 
