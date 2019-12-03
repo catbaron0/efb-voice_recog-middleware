@@ -1,4 +1,4 @@
-from typing import Dict, TypeVar, Callable, Optional
+from typing import Dict, TypeVar, Callable, Optional, List
 from io import BytesIO
 from os import PathLike
 
@@ -22,7 +22,7 @@ class AzureSpeech(SpeechEngine):
     ]
 
     @staticmethod
-    def first(data: List[_T], key: Callable[_T, bool]) -> Optional[_T]:
+    def first(data: List[_T], key: Callable[[_T], bool]) -> Optional[_T]:
         """
         Look for first element in a list that matches a criteria.
 

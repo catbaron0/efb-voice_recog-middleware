@@ -19,6 +19,7 @@ from ehforwarderbot.utils import get_config_path
 from . import __version__ as version
 from .engines.baidu import BaiduSpeech
 from .engines.azure import AzureSpeech
+from .engines.iflytek import IFlyTekSpeech
 
 
 class VoiceRecogMiddleware(EFBMiddleware):
@@ -50,6 +51,10 @@ class VoiceRecogMiddleware(EFBMiddleware):
         if "azure" in tokens:
             self.voice_engines.append(
                 AzureSpeech(key_dict=tokens['azure'])
+            )
+        if "iflytek" in tokens:
+            self.voice_engines.append(
+                IFlyTekSpeech(key_dict=tokens['iflytek'])
             )
 
     def load_config(self) -> Optional[Dict]:
