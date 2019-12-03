@@ -119,7 +119,7 @@ class VoiceRecogMiddleware(EFBMiddleware):
     
     def process_audio(self, message: EFBMsg, audio: NamedTemporaryFile):
         try:
-            reply_text: str = '\n'.join(self.recognize(audio, self.lang))
+            reply_text: str = '\n'.join(self.recognize(audio.name, self.lang))
         except Exception:
             reply_text = 'Failed to recognize voice content.'
             return message
