@@ -25,7 +25,8 @@ class VoiceRecogMiddleware(EFBMiddleware):
     """
     EFB Middleware - Voice recognize middleware
     Convert voice mesage replied by user to text message.
-    Author: Catbaron <https://github.com/catbaron>
+    Author: Catbaron <https://github.com/catbaron>, 
+            Eana Hufwe <https://1a23.com>
     """
 
     middleware_id: str = "catbaron.voice_recog"
@@ -92,7 +93,7 @@ class VoiceRecogMiddleware(EFBMiddleware):
         if not self.voice_engines:
             return message
 
-        audio: BinaryIO = NamedTemporaryFile()
+        audio: NamedTemporaryFile = NamedTemporaryFile()
         shutil.copyfileobj(message.file, audio)
         audio.file.seek(0)
         message.file.file.seek(0)
@@ -106,7 +107,7 @@ class VoiceRecogMiddleware(EFBMiddleware):
 
         return message
     
-    def process_audio(self, message: EFBMsg, audio: BinaryIO):
+    def process_audio(self, message: EFBMsg, audio: NamedTemporaryFile):
         try:
             reply_text: str = '\n'.join(self.recognize(audio, self.lang))
         except Exception:
@@ -119,3 +120,4 @@ class VoiceRecogMiddleware(EFBMiddleware):
         message.edit_media = False
         coordinator.send_message(message)
 
+        audio.close()
