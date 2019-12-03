@@ -84,9 +84,9 @@ class AzureSpeech(SpeechEngine):
             try:
                 rjson = r.json()
             except ValueError:
-                return ["ERROR!", r.text, r]
+                return ["ERROR!", r.text]
 
             if r.status_code == 200:
                 return [i['Display'] for i in rjson['NBest']]
             else:
-                return ["ERROR!", r.text, r]
+                return ["ERROR!", r.text]
