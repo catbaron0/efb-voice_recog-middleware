@@ -6,6 +6,7 @@ import tempfile
 import requests
 import copy
 import threading
+from io import BytesIO
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import IO, Any, Dict, Optional, List, BinaryIO
@@ -45,6 +46,10 @@ class VoiceRecogMiddleware(EFBMiddleware):
             self.voice_engines.append(
                 BaiduSpeech(channel=1, key_dict=tokens['baidu'])
                 )
+        if "azure" in tokens:
+            self.voice_engines.append(
+                AzureSpeech(channel=1, key_dict=tokens['azure'])
+            )
 
     def load_config(self) -> Optional[Dict]:
         config_path: Path = get_config_path(self.middleware_id)
@@ -82,6 +87,9 @@ class VoiceRecogMiddleware(EFBMiddleware):
             Optional[:obj:`.EFBMsg`]: Processed message or None if discarded.
         """
         if self.sent_by_master(message) or message.type != MsgType.Audio:
+            return message
+
+        if not self.voice_engines:
             return message
 
         audio: BinaryIO = NamedTemporaryFile()
@@ -172,19 +180,26 @@ class BaiduSpeech(SpeechEngine):
             "speech": base64.b64encode(audio.raw_data).decode()
         }
         r = requests.post("http://vop.baidu.com/server_api", json=d)
+        if r.status_code != 200:
+            return [r.content, r]
         rjson = r.json()
         if rjson['err_no'] == 0:
-            return '\n'.join(rjson['result'])
+            return [rjson['result']]
         else:
             return ["ERROR!", rjson['err_msg']]
 
 
-class BingSpeech(SpeechEngine):
+class AzureSpeech(SpeechEngine):
     keys = None
     access_token = None
-    engine_name = "Bing"
-    lang_list = ['ar-EG', 'de-DE', 'en-US', 'es-ES', 'fr-FR',
-                 'it-IT', 'ja-JP', 'pt-BR', 'ru-RU', 'zh-CN']
+    engine_name = "Azure"
+    lang_list = [
+        "ar-EG", "ar-SA", "ar-AE", "ar-KW", "ar-QA", "ca-ES", "da-DK", "de-DE", 
+        "en-AU", "en-CA", "en-GB", "en-IN", "en-NZ", "en-US", "es-ES", "es-MX", 
+        "fi-FI", "fr-CA", "fr-FR", "gu-IN", "hi-IN", "it-IT", "ja-JP", "ko-KR", 
+        "mr-IN", "nb-NO", "nl-NL", "pl-PL", "pt-BR", "pt-PT", "ru-RU", "sv-SE", 
+        "ta-IN", "te-IN", "zh-CN", "zh-HK", "zh-TW", "th-TH", "tr-TR"
+        ]
 
     @staticmethod
     def first(data, key):
@@ -206,7 +221,12 @@ class BingSpeech(SpeechEngine):
 
     def __init__(self, channel, keys):
         self.channel = channel
-        self.keys = keys
+        self.key = keys['key1']
+        self.auth_endpoint = keys['endpoint']
+        self.endpoint = self.auth_endpoint.replace(
+            '.api.cognitive.microsoft.com/sts/v1.0/issuetoken',
+            '.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1'
+        )
 
     def recognize(self, path, lang):
         if isinstance(path, str):
@@ -218,28 +238,30 @@ class BingSpeech(SpeechEngine):
             if lang not in self.lang_list:
                 return ["ERROR!", "Invalid language."]
 
-        with tempfile.NamedTemporaryFile() as f:
-            audio = pydub.AudioSegment.from_file(file)
-            audio = audio.set_frame_rate(16000)
-            audio.export(f.name, format="wav")
+        with BytesIO() as f:
+            audio = pydub.AudioSegment.from_file(file)\
+                .set_frame_rate(16000)\
+                .set_channels(1)
+            audio.export(f, format="ogg", codec="opus",
+                         bitrate='16k', parameters=['-strict', '-2'])
             header = {
-                "Ocp-Apim-Subscription-Key": self.keys,
-                "Content-Type": "audio/wav; samplerate=16000"
+                "Ocp-Apim-Subscription-Key": self.key,
+                "Content-Type": "audio/ogg; codecs=opus"
             }
             d = {
                 "language": lang,
                 "format": "detailed",
             }
             f.seek(0)
-            r = requests.post("https://speech.platform.bing.com/speech/recognition/conversation/cognitiveservices/v1",
-                              params=d, data=f.read(), headers=header)
+            r = requests.post(self.endpoint,
+                              params=d, data=f, headers=header)
 
             try:
                 rjson = r.json()
             except ValueError:
-                return ["ERROR!", r.text]
+                return ["ERROR!", r.text, r]
 
             if r.status_code == 200:
                 return [i['Display'] for i in rjson['NBest']]
             else:
-                return ["ERROR!", r.text]
+                return ["ERROR!", r.text, r]

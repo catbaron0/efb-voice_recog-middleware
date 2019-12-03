@@ -4,18 +4,25 @@
 
 **Middleware ID**: `catbaron.voice_recog`
 
-**LinkPreview** is a middleware for EFB to recognize content of voice message.
+**VoiceRecogMiddleware** is a middleware for EFB to recognize content of voice message.
 This middleware is modified based on `ehForwarderBot 1.0`
 
 ![example](./example.jpg)
 
-* For now, only API from Baidu is available for free.
-* You need to get `API_KEY` and `SECRET_KEY` following http://ai.baidu.com/docs#/ASR-API-PRO/top
-* You need to use **VoiceRecogMiddleware** on top of [EFB](https://ehforwarderbot.readthedocs.io). Please check the document and install EFB first.
+- Baidu
+    -  API from Baidu is available for free. 
+    -  You need to get `API_KEY` and `SECRET_KEY` following
+    http://ai.baidu.com/docs#/ASR-API-PRO/top
+- Azure Cognitive Service
+    - Azure Cognitive Service offers 5 audio hours per month for free.
+    - You need to get `Key1` and `Endpoint` from https://portal.azure.com/
+-  You need to use **VoiceRecogMiddleware** on top of
+   [EFB](https://ehforwarderbot.readthedocs.io). Please check the
+   document and install EFB first.
 
 ## Dependense
-* Python >=3.6
-* EFB >=2.0.0b15
+* Python >= 3.6
+* EFB >= 2.0.0b15
 * pydub
 
 ## Install and configuration
@@ -36,7 +43,7 @@ slave_channels:
 - bar.dummy
 middlewares:
 - foo.other_middlewares
-- catbaron.link_preview
+- catbaron.voice_recog
 ```
 
 You only need to add the last line to your config file.
@@ -51,10 +58,15 @@ speech_api:
     baidu:
         api_key: API_KEY
         secret_key: SECRET_KEY
+    azure:
+        key1: KEY_1
+        endpoint: ENDPOINT
 
 language: zh
 ```
 
-Replace the `API_KEY` and `SECRET_KEY` to your own.
+Replace the `API_KEY`, `SECRET_KEY`, `KEY_1` and `ENDPOINT` to your own.
+
+Note that you may omit the section that you do not want to enable.
 
 * Restart EFB.

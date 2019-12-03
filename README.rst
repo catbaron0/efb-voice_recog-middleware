@@ -14,9 +14,13 @@ message. This middleware is modified based on ``ehForwarderBot 1.0``
 
    example
 
--  For now, only API from Baidu is available for free.
--  You need to get ``API_KEY`` and ``SECRET_KEY`` following
-   http://ai.baidu.com/docs#/ASR-API-PRO/top
+- Baidu
+    -  API from Baidu is available for free. 
+    -  You need to get ``API_KEY`` and ``SECRET_KEY`` following
+    http://ai.baidu.com/docs#/ASR-API-PRO/top
+- Azure Cognitive Service
+    - Azure Cognitive Service offers 5 audio hours per month for free.
+    - You need to get ``Key1`` and ``Endpoint`` from https://portal.azure.com/
 -  You need to use **VoiceRecogMiddleware** on top of
    `EFB <https://ehforwarderbot.readthedocs.io>`__. Please check the
    document and install EFB first.
@@ -25,7 +29,7 @@ Dependense
 ----------
 
 -  Python >= 3.6
--  EFB >= 2.0.0b15
+-  EFB >= 2.0.0b22
 -  pydub
 
 Install and configuration
@@ -68,9 +72,14 @@ create the config file if thers is not one. Edit it as:
         baidu:
             api_key: API_KEY
             secret_key: SECRET_KEY
+        azure:
+            key1: KEY_1
+            endpoint: ENDPOINT
 
     language: zh
 
-Replace the ``API_KEY`` and ``SECRET_KEY`` to your own.
+Replace ``API_KEY``, ``SECRET_KEY``, ``KEY_1`` and ``ENDPOINT`` to your own.
+
+Note that you may omit the section that you do not want to enable.
 
 -  Restart EFB.
