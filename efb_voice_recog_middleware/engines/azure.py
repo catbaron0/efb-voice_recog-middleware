@@ -53,9 +53,7 @@ class AzureSpeech(SpeechEngine):
         )
 
     def recognize(self, path: PathLike, lang: str):
-        if isinstance(path, str):
-            file = open(path, 'rb')
-        else:
+        if not isinstance(path, str):
             return ["ERROR!", "File must be a path string."]
         if lang not in self.lang_list:
             lang = self.first(self.lang_list, lambda a: a.split(
@@ -64,10 +62,10 @@ class AzureSpeech(SpeechEngine):
                 return ["ERROR!", "Invalid language."]
 
         with BytesIO() as f:
-            audio = pydub.AudioSegment.from_file(file)\
+            audio = pydub.AudioSegment.from_file(path)\
                 .set_frame_rate(16000)\
                 .set_channels(1)
-            audio.export(f, format="ogg", codec="opus",
+            audio.export(f, format="wav", codec="opus",
                          bitrate='16k', parameters=['-strict', '-2'])
             header = {
                 "Ocp-Apim-Subscription-Key": self.key,

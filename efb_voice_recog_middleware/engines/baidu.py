@@ -42,9 +42,7 @@ class BaiduSpeech(SpeechEngine):
     def recognize(self, file, lang):
         if hasattr(file, 'read'):
             pass
-        elif isinstance(file, str):
-            file = open(file, 'rb')
-        else:
+        elif not isinstance(file, str):
             return [
                 "ERROR!",
                 "File must be a path string or a file object in `rb` mode."

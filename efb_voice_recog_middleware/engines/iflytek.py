@@ -186,15 +186,13 @@ class IFlyTekSpeech(SpeechEngine):
 
     def recognize(self, path: PathLike, lang: str):
 
-        if isinstance(path, str):
-            file = open(path, 'rb')
-        else:
+        if not isinstance(path, str):
             return ["ERROR!", "File must be a path string."]
         if lang not in self.lang_list:
             return ["ERROR!", "Invalid language."]
 
         with BytesIO() as f:
-            audio = pydub.AudioSegment.from_file(file)\
+            audio = pydub.AudioSegment.from_file(path)\
                 .set_frame_rate(16000)\
                 .set_channels(1)
             audio.export(f, format="s16le", codec="pcm_s16le", bitrate='16k')

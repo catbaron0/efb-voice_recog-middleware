@@ -20,6 +20,7 @@ from . import __version__ as version
 from .engines.baidu import BaiduSpeech
 from .engines.azure import AzureSpeech
 from .engines.iflytek import IFlyTekSpeech
+from .engines.tencent import TencentSpeech
 
 
 class VoiceRecogMiddleware(EFBMiddleware):
@@ -55,6 +56,10 @@ class VoiceRecogMiddleware(EFBMiddleware):
         if "iflytek" in tokens:
             self.voice_engines.append(
                 IFlyTekSpeech(key_dict=tokens['iflytek'])
+            )
+        if "tencent" in tokens:
+            self.voice_engines.append(
+                TencentSpeech(key_dict=tokens['tencent'])
             )
 
     def load_config(self) -> Optional[Dict]:
