@@ -12,13 +12,13 @@ from tempfile import NamedTemporaryFile
 from typing import IO, Any, Dict, Optional, List, BinaryIO
 
 import yaml
-import pydub
 import shutil
 
 from ehforwarderbot import coordinator, EFBMiddleware, EFBMsg, MsgType, EFBChat
 from ehforwarderbot.utils import get_config_path
 from . import __version__ as version
-from abc import ABC, abstractmethod
+from .engines.baidu import BaiduSpeech
+from .engines.azure import AzureSpeech
 
 
 class VoiceRecogMiddleware(EFBMiddleware):
@@ -44,11 +44,11 @@ class VoiceRecogMiddleware(EFBMiddleware):
 
         if "baidu" in tokens:
             self.voice_engines.append(
-                BaiduSpeech(channel=1, key_dict=tokens['baidu'])
+                BaiduSpeech(key_dict=tokens['baidu'])
                 )
         if "azure" in tokens:
             self.voice_engines.append(
-                AzureSpeech(channel=1, key_dict=tokens['azure'])
+                AzureSpeech(key_dict=tokens['azure'])
             )
 
     def load_config(self) -> Optional[Dict]:
@@ -119,159 +119,3 @@ class VoiceRecogMiddleware(EFBMiddleware):
         message.edit_media = False
         coordinator.send_message(message)
 
-
-
-class SpeechEngine(ABC):
-    """Name of the speech recognition engine"""
-    engine_name: str = __name__
-    """List of languages codes supported"""
-    lang_list: List[str] = []
-
-    @abstractmethod
-    def recognize(self, file: IO[bytes], lang: str):
-        raise NotImplementedError()
-
-
-class BaiduSpeech(SpeechEngine):
-    key_dict: Dict[str, str] = None
-    access_token: str = None
-    full_token = None
-    engine_name: str = "Baidu"
-    lang_list = ['zh', 'en', 'zh-yue', 'zh-x-en',
-                 'zh-x-sichuan', 'zh-x-farfield']
-
-    languages = {
-        "zh": 1537,
-        "zh-x-en": 1536,
-        "en": 1737,
-        "ct": 1637,  # for compatibility
-        "zh-yue": 1637,
-        "zh-x-sichuan": 1837,
-        "zh-x-farfield": 1936
-    }
-
-    def __init__(self, channel: int, key_dict: Dict[str, str]):
-        self.channel = channel
-        self.key_dict = key_dict
-        d = {
-            "grant_type": "client_credentials",
-            "client_id": key_dict['api_key'],
-            "client_secret": key_dict['secret_key']
-        }
-        r = requests.post(
-            "https://openapi.baidu.com/oauth/2.0/token",
-            data=d
-            ).json()
-        self.access_token: str = r['access_token']
-        self.full_token = r
-
-    def recognize(self, file, lang):
-        if hasattr(file, 'read'):
-            pass
-        elif isinstance(file, str):
-            file = open(file, 'rb')
-        else:
-            return [
-                "ERROR!", 
-                "File must be a path string or a file object in `rb` mode."
-                ]
-        if lang.lower() not in self.lang_list:
-            return ["ERROR!", "Invalid language."]
-
-        audio = pydub.AudioSegment.from_file(file).set_frame_rate(16000).set_channels(1)
-        with BytesIO() as f:
-            audio.export(f, format="s16le", codec="pcm_s16le")
-            headers = {
-                "Content-Type": "audio/pcm;rate=16000"
-            }
-            params = {
-                "cuid": "catbaron.voice_recog",
-                "token": self.access_token,
-                "dev_pid": self.languages[lang],
-            }
-            r = requests.post("http://vop.baidu.com/server_api", params=params, headers=headers, data=f)
-            if r.status_code != 200:
-                return ["ERROR!", r.status_code, r.content]
-            rjson = r.json()
-            if rjson['err_no'] == 0:
-                return rjson['result']
-            else:
-                return ["ERROR!", rjson['err_msg']]
-
-
-class AzureSpeech(SpeechEngine):
-    keys = None
-    access_token = None
-    engine_name = "Azure"
-    lang_list = [
-        "ar-EG", "ar-SA", "ar-AE", "ar-KW", "ar-QA", "ca-ES", "da-DK", "de-DE", 
-        "en-AU", "en-CA", "en-GB", "en-IN", "en-NZ", "en-US", "es-ES", "es-MX", 
-        "fi-FI", "fr-CA", "fr-FR", "gu-IN", "hi-IN", "it-IT", "ja-JP", "ko-KR", 
-        "mr-IN", "nb-NO", "nl-NL", "pl-PL", "pt-BR", "pt-PT", "ru-RU", "sv-SE", 
-        "ta-IN", "te-IN", "zh-CN", "zh-HK", "zh-TW", "th-TH", "tr-TR"
-        ]
-
-    @staticmethod
-    def first(data, key):
-        """
-        Look for first element in a list that matches a criteria.
-
-        Args:
-            data (list): List of elements
-            key (function with one argument that returns Boolean value):
-                Function to decide if an element matches the criteria.
-
-        Returns:
-            The first element found, or ``None``.
-        """
-        for i in data:
-            if key(i):
-                return i
-        return None
-
-    def __init__(self, channel, keys):
-        self.channel = channel
-        self.key = keys['key1']
-        self.auth_endpoint = keys['endpoint']
-        self.endpoint = self.auth_endpoint.replace(
-            '.api.cognitive.microsoft.com/sts/v1.0/issuetoken',
-            '.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1'
-        )
-
-    def recognize(self, path, lang):
-        if isinstance(path, str):
-            file = open(path, 'rb')
-        else:
-            return ["ERROR!", "File must be a path string."]
-        if lang not in self.lang_list:
-            lang = self.first(self.lang_list, lambda a: a.split('-')[0] == lang.split('-')[0])
-            if lang not in self.lang_list:
-                return ["ERROR!", "Invalid language."]
-
-        with BytesIO() as f:
-            audio = pydub.AudioSegment.from_file(file)\
-                .set_frame_rate(16000)\
-                .set_channels(1)
-            audio.export(f, format="ogg", codec="opus",
-                         bitrate='16k', parameters=['-strict', '-2'])
-            header = {
-                "Ocp-Apim-Subscription-Key": self.key,
-                "Content-Type": "audio/ogg; codecs=opus"
-            }
-            d = {
-                "language": lang,
-                "format": "detailed",
-            }
-            f.seek(0)
-            r = requests.post(self.endpoint,
-                              params=d, data=f, headers=header)
-
-            try:
-                rjson = r.json()
-            except ValueError:
-                return ["ERROR!", r.text, r]
-
-            if r.status_code == 200:
-                return [i['Display'] for i in rjson['NBest']]
-            else:
-                return ["ERROR!", r.text, r]
