@@ -101,7 +101,7 @@ class VoiceRecogMiddleware(EFBMiddleware):
 
     @staticmethod
     def sent_by_master(message: EFBMsg) -> bool:
-        return message.deliver_to == coordinator.master
+        return message.deliver_to != coordinator.master
 
     def process_message(self, message: EFBMsg) -> Optional[EFBMsg]:
         """
