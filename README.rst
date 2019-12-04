@@ -42,20 +42,24 @@ Dependense
 Install and configuration
 -------------------------
 
--  Install
-
-   ::
-
-       git clone https://github.com/catbaron0/efb-voice_recog-middleware
-       cd efb-voice_recog-middleware
-       sudo python setup.py install
-
--  Register to EFB Following `this
-   document <https://ehforwarderbot.readthedocs.io/en/latest/getting-started.html>`__
-   to edit the config file. The config file by default is
-   ``$HOME/.ehforwarderbot/profiles/default``. It should look like:
+Install
+~~~~~~~
 
 ::
+
+    git clone https://github.com/catbaron0/efb-voice_recog-middleware
+    cd efb-voice_recog-middleware
+    sudo python setup.py install
+
+Enable
+~~~~~~
+
+Register to EFB Following `this
+document <https://ehforwarderbot.readthedocs.io/en/latest/getting-started.html>`__
+to edit the config file. The config file by default is
+``$HOME/.ehforwarderbot/profiles/default``. It should look like:
+
+.. code:: yaml
 
     master_channel: foo.demo_master
     slave_channels:
@@ -67,13 +71,14 @@ Install and configuration
 
 You only need to add the last line to your config file.
 
--  Config the middleware
+Configure the middleware
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The config file by default is
 ``$HOME/.ehforwarderbot/profiles/default/catbaron.voice_recog``. Please
 create the config file if thers is not one. Edit it as:
 
-::
+.. code:: yaml
 
     speech_api:
         baidu:
@@ -91,9 +96,15 @@ create the config file if thers is not one. Edit it as:
             api_key: APP_KEY
 
     language: zh
+    auto: true
 
 Replace the section with all-caps to your own ones.
 
 Note that you may omit the section that you do not want to enable.
 
--  Restart EFB.
+Turn off ``auto`` if you want to disable auto recognition to all voice
+messages. Alternatively, you may reply ``recog``` to a voice
+message to recognise it.
+
+Restart EFB
+~~~~~~~~~~~

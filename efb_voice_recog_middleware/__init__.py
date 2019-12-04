@@ -101,7 +101,7 @@ class VoiceRecogMiddleware(EFBMiddleware):
 
     @staticmethod
     def sent_by_master(message: EFBMsg) -> bool:
-        return message.deliver_to != coordinator.master
+        return message.deliver_to == coordinator.master
 
     def process_message(self, message: EFBMsg) -> Optional[EFBMsg]:
         """
@@ -111,23 +111,36 @@ class VoiceRecogMiddleware(EFBMiddleware):
         Returns:
             Optional[:obj:`.EFBMsg`]: Processed message or None if discarded.
         """
-        if self.sent_by_master(message) or message.type != MsgType.Audio or \
-                (message.edit and not message.edit_media):
+
+        if self.sent_by_master(message) and \
+            message.text.startswith('recog`'):
+            audio_msg = message.target
+        elif not self.sent_by_master(message):
+            audio_msg = message
+        else:
+            return message
+
+        if not self.config.get('auto', True):
+            return message
+
+        if audio_msg.type != MsgType.Audio or \
+            (audio_msg.edit and not audio_msg.edit_media) or \
+            not audio_msg.file:
             return message
 
         if not self.voice_engines:
             return message
 
-        audio: NamedTemporaryFile = NamedTemporaryFile(suffix=mimetypes.guess_extension(message.mime))
-        shutil.copyfileobj(message.file, audio)
-        audio.file.seek(0)
-        message.file.file.seek(0)
-        edited = copy.copy(message)
+        audio: NamedTemporaryFile = NamedTemporaryFile(suffix=mimetypes.guess_extension(audio_msg.mime))
+        shutil.copyfileobj(audio_msg.file, audio)
+        audio.seek(0)
+        audio_msg.file.seek(0)
+        edited = copy.copy(audio_msg)
 
         threading.Thread(
             target=self.process_audio, 
             args=(edited, audio),
-            name=f"VoiceRecog thread {message.uid}"
+            name=f"VoiceRecog thread {audio_msg.uid}"
             ).start()
 
         return message
