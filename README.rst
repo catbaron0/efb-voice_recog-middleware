@@ -21,6 +21,13 @@ message. This middleware is modified based on ``ehForwarderBot 1.0``
 - Azure Cognitive Service
     - Azure Cognitive Service offers 5 audio hours per month for free.
     - You need to get ``Key1`` and ``Endpoint`` from https://portal.azure.com/
+- IFlyTek
+    - IFlyTek offers 500 queries per day fro free to new users. Additional free bundles are available from 50,000 queries/90 days to 100,000 queries/year.
+    - You need to get ``APPID``, ``APISecret`` and ``APIKey`` from https://console.xfyun.cn/services/iat
+- Tencent
+    - Tencent offers 15,000 queries for free per month.
+    - Chinese ID verification is required to use free service.
+    - You need to get ``SecretID`` and ``SecretKey`` from https://console.cloud.tencent.com/cam/capi
 -  You need to use **VoiceRecogMiddleware** on top of
    `EFB <https://ehforwarderbot.readthedocs.io>`__. Please check the
    document and install EFB first.
@@ -75,10 +82,17 @@ create the config file if thers is not one. Edit it as:
         azure:
             key1: KEY_1
             endpoint: ENDPOINT
+        tencent:
+            secret_id: SECRET_ID
+            secret_key: SECRET_KEY
+        iflytek:
+            app_id: APP_ID
+            api_secret: API_SECRET
+            api_key: APP_KEY
 
     language: zh
 
-Replace ``API_KEY``, ``SECRET_KEY``, ``KEY_1`` and ``ENDPOINT`` to your own.
+Replace the section with all-caps to your own ones.
 
 Note that you may omit the section that you do not want to enable.
 
