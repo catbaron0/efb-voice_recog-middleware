@@ -65,8 +65,8 @@ class AzureSpeech(SpeechEngine):
             audio = pydub.AudioSegment.from_file(path)\
                 .set_frame_rate(16000)\
                 .set_channels(1)
-            audio.export(f, format="ogg", codec="opus",
-                         bitrate='16k', parameters=['-strict', '-2'])
+            audio.export(f, format="ogg", codec="libopus",
+                         bitrate='16k')
             header = {
                 "Ocp-Apim-Subscription-Key": self.key,
                 "Content-Type": "audio/ogg; codecs=opus"
