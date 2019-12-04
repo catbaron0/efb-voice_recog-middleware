@@ -58,6 +58,7 @@ class TencentSpeech(SpeechEngine):
 
                 data = f.getvalue()
                 data_len = len(data)
+                # print(data_len)
                 base64_wav = base64.b64encode(data).decode()
 
                 req = models.SentenceRecognitionRequest()
@@ -65,7 +66,7 @@ class TencentSpeech(SpeechEngine):
                           "VoiceFormat": "wav", "UsrAudioKey": "catbaron.voice_recog", "Data": base64_wav, "DataLen": data_len}
                 req._deserialize(params)
                 resp = self.client.SentenceRecognition(req)
-                print(resp.to_json_string())
+                # print(resp.to_json_string())
                 return [resp.Result]
         except TencentCloudSDKException as err:
             return ["ERROR!", str(err)]

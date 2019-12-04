@@ -29,7 +29,7 @@ class IFlyTekSpeech(SpeechEngine):
     keys = None
     access_token = None
     engine_name = "IFlyTek"
-    lang_list = ["zh_cn", "en_us"]
+    lang_list = ["zh_cn", "en_us", "zh", "en"]
 
     def __init__(self, keys: Dict[str, str]):
         """
@@ -40,6 +40,12 @@ class IFlyTekSpeech(SpeechEngine):
         self.keys = keys
 
     class IFlyTekSession:
+
+        languages = {
+            "zh": "zh_cn",
+            "en": "en_us"
+        }
+
         def __init__(self, keys: Dict[str, str], file, lang):
             self.app_id = keys['app_id']
             self.api_secret = keys['api_secret']
@@ -119,6 +125,7 @@ class IFlyTekSpeech(SpeechEngine):
             return url
 
         def get_business_args(self, lang: str) -> Dict[str, Any]:
+            lang = self.languages.get(lang, lang)
             if lang == "zh_cn":
                 return {"domain": "iat", "language": "zh_cn", "accent": "mandarin", "vad_eos": 10000}
             else:

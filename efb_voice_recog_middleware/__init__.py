@@ -6,10 +6,13 @@ import tempfile
 import requests
 import copy
 import threading
+import mimetypes
 from io import BytesIO
+from os import PathLike
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import IO, Any, Dict, Optional, List, BinaryIO
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import yaml
 import shutil
@@ -47,19 +50,19 @@ class VoiceRecogMiddleware(EFBMiddleware):
 
         if "baidu" in tokens:
             self.voice_engines.append(
-                BaiduSpeech(key_dict=tokens['baidu'])
+                BaiduSpeech(tokens['baidu'])
                 )
         if "azure" in tokens:
             self.voice_engines.append(
-                AzureSpeech(key_dict=tokens['azure'])
+                AzureSpeech(tokens['azure'])
             )
         if "iflytek" in tokens:
             self.voice_engines.append(
-                IFlyTekSpeech(key_dict=tokens['iflytek'])
+                IFlyTekSpeech(tokens['iflytek'])
             )
         if "tencent" in tokens:
             self.voice_engines.append(
-                TencentSpeech(key_dict=tokens['tencent'])
+                TencentSpeech(tokens['tencent'])
             )
 
     def load_config(self) -> Optional[Dict]:
@@ -74,20 +77,31 @@ class VoiceRecogMiddleware(EFBMiddleware):
                 return
             return d
 
-    def recognize(self, file: BinaryIO, lang: str) -> List[str]:
+    def recognize(self, file: PathLike, lang: str) -> List[str]:
         '''
         Recognize the audio file to text.
         Args:
             file: An audio file. It should be FILE object in 'rb'
                   mode or string of path to the audio file.
         '''
-        results = [f'{e.engine_name} ({lang}): {e.recognize(file, lang)}'
-                   for e in self.voice_engines]
-        return results
+        with ThreadPoolExecutor(max_workers=5) as exe:
+            futures = {
+                exe.submit(e.recognize, file, lang): (e.engine_name, lang)
+                for e in self.voice_engines
+            }
+            results = []
+            for future in as_completed(futures):
+                engine_name, lang = futures[future]
+                try:
+                    data = future.result()
+                    results.append(f'{engine_name} ({lang}): {"; ".join(data)}')
+                except Exception as exc:
+                    results.append(f'{engine_name} ({lang}): {repr(exc)}')
+            return results
 
     @staticmethod
     def sent_by_master(message: EFBMsg) -> bool:
-        return message.deliver_to == coordinator.master
+        return message.deliver_to != coordinator.master
 
     def process_message(self, message: EFBMsg) -> Optional[EFBMsg]:
         """
@@ -97,21 +111,22 @@ class VoiceRecogMiddleware(EFBMiddleware):
         Returns:
             Optional[:obj:`.EFBMsg`]: Processed message or None if discarded.
         """
-        if self.sent_by_master(message) or message.type != MsgType.Audio:
+        if self.sent_by_master(message) or message.type != MsgType.Audio or \
+                (message.edit and not message.edit_media):
             return message
 
         if not self.voice_engines:
             return message
 
-        audio: NamedTemporaryFile = NamedTemporaryFile()
+        audio: NamedTemporaryFile = NamedTemporaryFile(suffix=mimetypes.guess_extension(message.mime))
         shutil.copyfileobj(message.file, audio)
         audio.file.seek(0)
         message.file.file.seek(0)
-        edited = copy.copy(EFBMsg)
+        edited = copy.copy(message)
 
         threading.Thread(
             target=self.process_audio, 
-            args=(edit, audio), 
+            args=(edited, audio),
             name=f"VoiceRecog thread {message.uid}"
             ).start()
 
@@ -122,7 +137,8 @@ class VoiceRecogMiddleware(EFBMiddleware):
             reply_text: str = '\n'.join(self.recognize(audio.name, self.lang))
         except Exception:
             reply_text = 'Failed to recognize voice content.'
-            return message
+        if getattr(message, 'text', None) is None:
+            message.text = ""
         message.text += reply_text
 
         message.file = None
