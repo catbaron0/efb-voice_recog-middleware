@@ -94,9 +94,9 @@ class VoiceRecogMiddleware(EFBMiddleware):
                 engine_name, lang = futures[future]
                 try:
                     data = future.result()
-                    results.append(f'{engine_name} ({lang}): {"; ".join(data)}')
+                    results.append(f'\n{engine_name} ({lang}): {"; ".join(data)}')
                 except Exception as exc:
-                    results.append(f'{engine_name} ({lang}): {repr(exc)}')
+                    results.append(f'\n{engine_name} ({lang}): {repr(exc)}')
             return results
 
     @staticmethod
@@ -112,8 +112,7 @@ class VoiceRecogMiddleware(EFBMiddleware):
             Optional[:obj:`.EFBMsg`]: Processed message or None if discarded.
         """
         drop = False
-        if self.sent_by_master(message) and \
-            message.text.startswith('recog`'):
+        if self.sent_by_master(message) and message.text.startswith('recog`'):
             audio_msg = message.target
             audio_msg.chat = message.chat
             drop = True
@@ -126,14 +125,16 @@ class VoiceRecogMiddleware(EFBMiddleware):
             return message
 
         if audio_msg.type != MsgType.Audio or \
-            (audio_msg.edit and not audio_msg.edit_media) or \
-            not audio_msg.file:
+                (audio_msg.edit and not audio_msg.edit_media) or not \
+                audio_msg.file:
             return message
 
         if not self.voice_engines:
             return message
 
-        audio: NamedTemporaryFile = NamedTemporaryFile(suffix=mimetypes.guess_extension(audio_msg.mime))
+        audio: NamedTemporaryFile = NamedTemporaryFile(
+            suffix=mimetypes.guess_extension(audio_msg.mime)
+        )
         shutil.copyfileobj(audio_msg.file, audio)
         audio.seek(0)
         audio_msg.file.seek(0)
