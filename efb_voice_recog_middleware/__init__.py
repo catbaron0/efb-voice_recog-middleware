@@ -29,7 +29,7 @@ from .engines.tencent import TencentSpeech
 class VoiceRecogMiddleware(EFBMiddleware):
     """
     EFB Middleware - Voice recognize middleware
-    Convert voice mesage replied by user to text message.
+    Convert voice mesage to text message.
     Author: Catbaron <https://github.com/catbaron>, 
             Eana Hufwe <https://1a23.com>
     """
