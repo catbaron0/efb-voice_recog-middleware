@@ -111,10 +111,12 @@ class VoiceRecogMiddleware(EFBMiddleware):
         Returns:
             Optional[:obj:`.EFBMsg`]: Processed message or None if discarded.
         """
-
+        drop = False
         if self.sent_by_master(message) and \
             message.text.startswith('recog`'):
             audio_msg = message.target
+            audio_msg.chat = message.chat
+            drop = True
         elif not self.sent_by_master(message):
             audio_msg = message
         else:
@@ -142,9 +144,9 @@ class VoiceRecogMiddleware(EFBMiddleware):
             args=(edited, audio),
             name=f"VoiceRecog thread {audio_msg.uid}"
             ).start()
+        if not drop:
+            return message
 
-        return message
-    
     def process_audio(self, message: EFBMsg, audio: NamedTemporaryFile):
         try:
             reply_text: str = '\n'.join(self.recognize(audio.name, self.lang))
@@ -154,7 +156,7 @@ class VoiceRecogMiddleware(EFBMiddleware):
             message.text = ""
         message.text += reply_text
 
-        message.file = None
+        # message.file = None
         message.edit = True
         message.edit_media = False
         coordinator.send_message(message)
