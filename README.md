@@ -87,8 +87,6 @@ Replace the section with all-caps to your own ones.
 
 Note that you may omit the section that you do not want to enable.
 
-* Note: reply for recognizatin is unavailable for now because of a bug from EHF.
-Please keep `auto` as `true` before the bug is fixed.
 ---
 Turn off `auto` if you want to disable auto recognition to all voice
 messages. Alternatively, you may reply <code>recog`</code> to a voice

@@ -102,10 +102,6 @@ Replace the section with all-caps to your own ones.
 
 Note that you may omit the section that you do not want to enable.
 
-Note:
-~~~~~
-Reply for recognizatin is unavailable for now because of a bug from EHF.
-
 Turn off ``auto`` if you want to disable auto recognition to all voice
 messages. Alternatively, you may reply ``recog``` to a voice
 message to recognise it.

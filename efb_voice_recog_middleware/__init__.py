@@ -114,7 +114,7 @@ class VoiceRecogMiddleware(EFBMiddleware):
         drop = False
         if self.sent_by_master(message) and message.text.startswith('recog`'):
             audio_msg = message.target
-            audio_msg.chat = message.chat
+            audio_msg.chat = copy.copy(message.chat)
             drop = True
         elif not self.sent_by_master(message):
             audio_msg = message
