@@ -114,23 +114,19 @@ class VoiceRecogMiddleware(EFBMiddleware):
         drop = False
         if self.sent_by_master(message) and message.text.startswith('recog`'):
             audio_msg = message.target
-            audio_msg.chat = copy.copy(message.chat)
             drop = True
-        elif not self.sent_by_master(message):
+        elif not self.sent_by_master(message) and self.config.get('auto', True):
             audio_msg = message
         else:
             return message
 
-        if not self.config.get('auto', True):
-            return message
-
-        if audio_msg.type != MsgType.Audio or \
-                (audio_msg.edit and not audio_msg.edit_media) or not \
-                audio_msg.file:
-            return message
+        if audio_msg.type != MsgType.Audio or not audio_msg.file:
+            if not drop:
+                return message
 
         if not self.voice_engines:
-            return message
+            if not drop:
+                return message
 
         audio: NamedTemporaryFile = NamedTemporaryFile(
             suffix=mimetypes.guess_extension(audio_msg.mime)
@@ -139,6 +135,12 @@ class VoiceRecogMiddleware(EFBMiddleware):
         audio.seek(0)
         audio_msg.file.seek(0)
         edited = copy.copy(audio_msg)
+
+        # necessary because copy.copy can't deal with chat of replied message
+        # Can be removed after the bug is fixed
+        edited.chat = copy.copy(message.chat)
+        if self.sent_by_master(message):
+            edited.author = copy.copy(message.target.author)
 
         threading.Thread(
             target=self.process_audio, 
