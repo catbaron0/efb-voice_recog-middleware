@@ -1,23 +1,18 @@
 # coding: utf-8
-import base64
 import logging
-import os
-import tempfile
-import requests
 import copy
 import threading
 import mimetypes
-from io import BytesIO
 from os import PathLike
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import IO, Any, Dict, Optional, List, BinaryIO
+from typing import Any, Dict, Optional, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import yaml
 import shutil
 
-from ehforwarderbot import coordinator, EFBMiddleware, EFBMsg, MsgType, EFBChat
+from ehforwarderbot import coordinator, Middleware, Message, MsgType
 from ehforwarderbot.utils import get_config_path
 from . import __version__ as version
 from .engines.baidu import BaiduSpeech
@@ -26,9 +21,9 @@ from .engines.iflytek import IFlyTekSpeech
 from .engines.tencent import TencentSpeech
 
 
-class VoiceRecogMiddleware(EFBMiddleware):
+class VoiceRecogMiddleware(Middleware):
     """
-    EFB Middleware - Voice recognize middleware
+    Middleware - Voice recognize middleware
     Convert voice mesage to text message.
     Author: Catbaron <https://github.com/catbaron>, 
             Eana Hufwe <https://1a23.com>
@@ -100,16 +95,16 @@ class VoiceRecogMiddleware(EFBMiddleware):
             return results
 
     @staticmethod
-    def sent_by_master(message: EFBMsg) -> bool:
+    def sent_by_master(message: Message) -> bool:
         return message.deliver_to != coordinator.master
 
-    def process_message(self, message: EFBMsg) -> Optional[EFBMsg]:
+    def process_message(self, message: Message) -> Optional[Message]:
         """
         Process a message with middleware
         Args:
-            message (:obj:`.EFBMsg`): Message object to process
+            message (:obj:`.Message`): Message object to process
         Returns:
-            Optional[:obj:`.EFBMsg`]: Processed message or None if discarded.
+            Optional[:obj:`.Message`]: Processed message or None if discarded.
         """
         drop = False
         if self.sent_by_master(message) and message.text.startswith('recog`'):
@@ -120,9 +115,14 @@ class VoiceRecogMiddleware(EFBMiddleware):
         else:
             return message
 
-        if audio_msg.type != MsgType.Audio or not audio_msg.file:
-            if not drop:
-                return message
+        try:
+            if audio_msg.type != MsgType.Voice or not audio_msg.file:
+                if not drop:
+                    return message
+        except Exception as e:
+            print(f"{e}:, {audio_msg.__dict__}")
+            raise e
+
 
         if not self.voice_engines:
             if not drop:
@@ -143,14 +143,14 @@ class VoiceRecogMiddleware(EFBMiddleware):
             edited.author = copy.copy(message.target.author)
 
         threading.Thread(
-            target=self.process_audio, 
+            target=self.process_audio,
             args=(edited, audio),
             name=f"VoiceRecog thread {audio_msg.uid}"
             ).start()
         if not drop:
             return message
 
-    def process_audio(self, message: EFBMsg, audio: NamedTemporaryFile):
+    def process_audio(self, message: Message, audio: NamedTemporaryFile):
         try:
             reply_text: str = '\n'.join(self.recognize(audio.name, self.lang))
         except Exception:
@@ -159,7 +159,7 @@ class VoiceRecogMiddleware(EFBMiddleware):
             message.text = ""
         message.text += reply_text
 
-        # message.file = None
+        message.file = None
         message.edit = True
         message.edit_media = False
         coordinator.send_message(message)
