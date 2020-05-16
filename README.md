@@ -68,18 +68,32 @@ speech_api:
     baidu:
         api_key: API_KEY
         secret_key: SECRET_KEY
+        # supported language:
+        #   zh, zh-x-en, en, zh-yue, zh-x-sichuan, zh-x-farfield
+        lang: zh
     azure:
         key1: KEY_1
         endpoint: ENDPOINT
+        # supported language:
+        #   ar-EG, ar-SA, ar-AE, ar-KW, ar-QA, ca-ES,
+        #   da-DK, de-DE, en-AU, en-CA, en-GB, en-IN,
+        #   en-NZ, en-US, es-ES, es-MX, fi-FI, fr-CA,
+        #   fr-FR, gu-IN, hi-IN, it-IT, ja-JP, ko-KR,
+        #   mr-IN, nb-NO, nl-NL, pl-PL, pt-BR, pt-PT,
+        #   ru-RU, sv-SE, ta-IN, te-IN, zh-CN, zh-HK,
+        #   zh-TW, th-TH, tr-TR
+        lang: zh
     tencent:
         secret_id: SECRET_ID
         secret_key: SECRET_KEY
+        # supported language: en, zh
+        lang: en
     iflytek:
         app_id: APP_ID
         api_secret: API_SECRET
         api_key: APP_KEY
-
-language: zh
+        # supported language: zh, en
+        lang: en
 auto: true
 ```
 
