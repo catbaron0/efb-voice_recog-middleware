@@ -40,24 +40,24 @@ class VoiceRecogMiddleware(Middleware):
     def __init__(self, instance_id: str = None):
         super().__init__()
         self.config: Dict[str: Any] = self.load_config()
-        tokens: Dict[str, Any] = self.config.get("speech_api", dict())
-        self.lang: str = self.config.get('language', 'zh')
+        engines: Dict[str, Any] = self.config.get("speech_api", dict())
+        # self.lang: str = self.config.get('language', 'zh')
 
-        if "baidu" in tokens:
+        if "baidu" in engines:
             self.voice_engines.append(
-                BaiduSpeech(tokens['baidu'])
+                BaiduSpeech(engines['baidu'])
                 )
-        if "azure" in tokens:
+        if "azure" in engines:
             self.voice_engines.append(
-                AzureSpeech(tokens['azure'])
+                AzureSpeech(engines['azure'])
             )
-        if "iflytek" in tokens:
+        if "iflytek" in engines:
             self.voice_engines.append(
-                IFlyTekSpeech(tokens['iflytek'])
+                IFlyTekSpeech(engines['iflytek'])
             )
-        if "tencent" in tokens:
+        if "tencent" in engines:
             self.voice_engines.append(
-                TencentSpeech(tokens['tencent'])
+                TencentSpeech(engines['tencent'])
             )
 
     def load_config(self) -> Optional[Dict]:
@@ -72,16 +72,15 @@ class VoiceRecogMiddleware(Middleware):
                 return
             return d
 
-    def recognize(self, file: PathLike, lang: str) -> List[str]:
+    def recognize(self, file: PathLike) -> List[str]:
         '''
         Recognize the audio file to text.
-        Args:
-            file: An audio file. It should be FILE object in 'rb'
-                  mode or string of path to the audio file.
+        :param file: An audio file. It should be FILE object in 'rb'
+            mode or string of path to the audio file.
         '''
         with ThreadPoolExecutor(max_workers=5) as exe:
             futures = {
-                exe.submit(e.recognize, file, lang): (e.engine_name, lang)
+                exe.submit(e.recognize, file): (e.engine_name, e.lang)
                 for e in self.voice_engines
             }
             results = []
@@ -89,7 +88,8 @@ class VoiceRecogMiddleware(Middleware):
                 engine_name, lang = futures[future]
                 try:
                     data = future.result()
-                    results.append(f'\n{engine_name} ({lang}): {"; ".join(data)}')
+                    results.append(
+                        f'\n{engine_name} ({lang}): {"; ".join(data)}')
                 except Exception as exc:
                     results.append(f'\n{engine_name} ({lang}): {repr(exc)}')
             return results
@@ -110,7 +110,8 @@ class VoiceRecogMiddleware(Middleware):
         if self.sent_by_master(message) and message.text.startswith('recog`'):
             audio_msg = message.target
             drop = True
-        elif not self.sent_by_master(message) and self.config.get('auto', True):
+        elif not self.sent_by_master(message)\
+                and self.config.get('auto', True):
             audio_msg = message
         else:
             return message
@@ -122,7 +123,6 @@ class VoiceRecogMiddleware(Middleware):
         except Exception as e:
             print(f"{e}:, {audio_msg.__dict__}")
             raise e
-
 
         if not self.voice_engines:
             if not drop:
@@ -152,7 +152,8 @@ class VoiceRecogMiddleware(Middleware):
 
     def process_audio(self, message: Message, audio: NamedTemporaryFile):
         try:
-            reply_text: str = '\n'.join(self.recognize(audio.name, self.lang))
+            # reply_text: str = '\n'.join(self.recognize(audio.name, self.lang))
+            reply_text: str = '\n'.join(self.recognize(audio.name))
         except Exception:
             reply_text = 'Failed to recognize voice content.'
         if getattr(message, 'text', None) is None:
