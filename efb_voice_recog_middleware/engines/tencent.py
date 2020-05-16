@@ -1,4 +1,4 @@
-from typing import Dict, TypeVar, Callable, Optional
+from typing import Dict
 from io import BytesIO
 from os import PathLike
 
@@ -6,7 +6,8 @@ import pydub
 from tencentcloud.common import credential
 from tencentcloud.common.profile.client_profile import ClientProfile
 from tencentcloud.common.profile.http_profile import HttpProfile
-from tencentcloud.common.exception.tencent_cloud_sdk_exception import TencentCloudSDKException
+from tencentcloud.common.exception.tencent_cloud_sdk_exception import \
+    TencentCloudSDKException
 from tencentcloud.asr.v20190614 import asr_client, models
 import base64
 
@@ -37,8 +38,11 @@ class TencentSpeech(SpeechEngine):
         clientProfile.httpProfile = httpProfile
         clientProfile.signMethod = "TC3-HMAC-SHA256"
         self.client = asr_client.AsrClient(cred, "ap-shanghai", clientProfile)
+        self.lang = keys.get('lang', 'zh')
 
-    def recognize(self, path: PathLike, lang: str):
+    def recognize(self, path: PathLike, lang: str = ""):
+        if not lang:
+            lang = self.lang
         if not isinstance(path, str):
             return ["ERROR!", "File must be a path string."]
         if lang not in self.lang_list:

@@ -12,8 +12,9 @@ class BaiduSpeech(SpeechEngine):
     access_token: str = None
     full_token = None
     engine_name: str = "Baidu"
-    lang_list = ['zh', 'en', 'zh-yue', 'zh-x-en',
-                 'zh-x-sichuan', 'zh-x-farfield']
+    lang_list = [
+        'zh', 'en', 'zh-yue', 'zh-x-en',
+        'zh-x-sichuan', 'zh-x-farfield']
 
     languages = {
         "zh": 1537,
@@ -27,6 +28,7 @@ class BaiduSpeech(SpeechEngine):
 
     def __init__(self, key_dict: Dict[str, str]):
         self.key_dict = key_dict
+        self.lang = key_dict.get('lang', 'zh')
         d = {
             "grant_type": "client_credentials",
             "client_id": key_dict['api_key'],
@@ -39,7 +41,9 @@ class BaiduSpeech(SpeechEngine):
         self.access_token: str = r['access_token']
         self.full_token = r
 
-    def recognize(self, file, lang):
+    def recognize(self, file, lang=""):
+        if not lang:
+            lang = self.lang
         if hasattr(file, 'read'):
             pass
         elif not isinstance(file, str):

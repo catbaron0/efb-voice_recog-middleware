@@ -1,4 +1,4 @@
-from typing import Dict, TypeVar, Callable, Optional, Any
+from typing import Dict, Any
 from io import BytesIO
 from os import PathLike
 from datetime import datetime
@@ -8,10 +8,8 @@ import base64
 from time import mktime
 from wsgiref.handlers import format_date_time
 from urllib.parse import urlencode
-import ssl
 import time
 import json
-from queue import Queue
 from threading import Event, Thread
 
 import pydub
@@ -38,6 +36,7 @@ class IFlyTekSpeech(SpeechEngine):
             requires "app_id", "api_secret", "api_key"
         """
         self.keys = keys
+        self.lang = keys.get('lang', 'zh_cn')
 
     class IFlyTekSession:
 
@@ -126,8 +125,13 @@ class IFlyTekSpeech(SpeechEngine):
 
         def get_business_args(self, lang: str) -> Dict[str, Any]:
             lang = self.languages.get(lang, lang)
-            if lang == "zh_cn":
-                return {"domain": "iat", "language": "zh_cn", "accent": "mandarin", "vad_eos": 10000}
+            if lang == "zh_cn" or lang == "en_us":
+                return {
+                    "domain": "iat",
+                    "language": lang,
+                    "accent": "mandarin",
+                    "vad_eos": 10000
+                    }
             else:
                 return {"domain": "iat", "language": lang, "vad_eos": 10000}
 
@@ -147,25 +151,37 @@ class IFlyTekSpeech(SpeechEngine):
                 # 发送第一帧音频，带business 参数
                 # appid 必须带上，只需第一帧发送
                 if status == STATUS_FIRST_FRAME:
-                    d = {"common": self.common_args,
-                         "business": biz_args,
-                         "data": {"status": 0, "format": "audio/L16;rate=16000",
-                                  "audio": base64.b64encode(buf).decode(),
-                                  "encoding": "raw"}}
+                    d = {
+                            "common": self.common_args,
+                            "business": biz_args,
+                            "data": {
+                                "status": 0, "format": "audio/L16;rate=16000",
+                                "audio": base64.b64encode(buf).decode(),
+                                "encoding": "raw"
+                            }
+                        }
                     d = json.dumps(d)
                     self.ws.send(d)
                     status = STATUS_CONTINUE_FRAME
                 # 中间帧处理
                 elif status == STATUS_CONTINUE_FRAME:
-                    d = {"data": {"status": 1, "format": "audio/L16;rate=16000",
-                                  "audio": base64.b64encode(buf).decode(),
-                                  "encoding": "raw"}}
+                    d = {
+                            "data": {
+                                "status": 1, "format": "audio/L16;rate=16000",
+                                "audio": base64.b64encode(buf).decode(),
+                                "encoding": "raw"
+                            }
+                        }
                     self.ws.send(json.dumps(d))
                 # 最后一帧处理
                 elif status == STATUS_LAST_FRAME:
-                    d = {"data": {"status": 2, "format": "audio/L16;rate=16000",
-                                  "audio": base64.b64encode(buf).decode(),
-                                  "encoding": "raw"}}
+                    d = {
+                            "data": {
+                                "status": 2, "format": "audio/L16;rate=16000",
+                                "audio": base64.b64encode(buf).decode(),
+                                "encoding": "raw"
+                            }
+                        }
                     self.ws.send(json.dumps(d))
                     break
                 # 模拟音频采样间隔
@@ -183,7 +199,8 @@ class IFlyTekSpeech(SpeechEngine):
                 return
 
             self.result += ''.join(
-                i['cw'][0]['w'] for i in data['data']['result']['ws'] if i.get('cw')
+                i['cw'][0]['w'] for i in data['data']['result']['ws']
+                if i.get('cw')
             )
             if data['data']['status'] == 2:
                 self.done.set()
@@ -191,7 +208,9 @@ class IFlyTekSpeech(SpeechEngine):
         def on_error(self, error):
             self.result += f"[Error: {error}]"
 
-    def recognize(self, path: PathLike, lang: str):
+    def recognize(self, path: PathLike, lang: str = ''):
+        if not lang:
+            lang = self.lang
 
         if not isinstance(path, str):
             return ["ERROR!", "File must be a path string."]
@@ -205,5 +224,5 @@ class IFlyTekSpeech(SpeechEngine):
             audio.export(f, format="s16le", codec="pcm_s16le", bitrate='16k')
 
             f.seek(0)
-            
+
             return [self.IFlyTekSession(self.keys, f, lang).run()]

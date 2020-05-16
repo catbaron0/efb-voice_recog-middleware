@@ -9,6 +9,7 @@ from . import SpeechEngine
 
 _T = TypeVar("_T")
 
+
 class AzureSpeech(SpeechEngine):
     keys = None
     access_token = None
@@ -49,8 +50,10 @@ class AzureSpeech(SpeechEngine):
         self.auth_endpoint = keys['endpoint']
         self.endpoint = self.auth_endpoint.replace(
             '.api.cognitive.microsoft.com/sts/v1.0/issuetoken',
-            '.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1'
+            '.stt.speech.microsoft.com/speech/recognition/'
+            'conversation/cognitiveservices/v1'
         )
+        self.lang = keys.get('lang', 'zh-CN')
 
     def recognize(self, path: PathLike, lang: str):
         if not isinstance(path, str):
@@ -65,8 +68,8 @@ class AzureSpeech(SpeechEngine):
             audio = pydub.AudioSegment.from_file(path)\
                 .set_frame_rate(16000)\
                 .set_channels(1)
-            audio.export(f, format="ogg", codec="libopus",
-                         bitrate='16k')
+            audio.export(
+                f, format="ogg", codec="libopus", bitrate='16k')
             header = {
                 "Ocp-Apim-Subscription-Key": self.key,
                 "Content-Type": "audio/ogg; codecs=opus"
@@ -76,8 +79,7 @@ class AzureSpeech(SpeechEngine):
                 "format": "detailed",
             }
             f.seek(0)
-            r = requests.post(self.endpoint,
-                              params=d, data=f, headers=header)
+            r = requests.post(self.endpoint, params=d, data=f, headers=header)
 
             try:
                 rjson = r.json()
