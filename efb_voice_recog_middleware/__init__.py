@@ -117,7 +117,7 @@ class VoiceRecogMiddleware(Middleware):
             return message
 
         try:
-            if audio_msg.type != MsgType.Voice or not audio_msg.file:
+            if audio_msg.type != MsgType.Voice or audio_msg.edit:
                 if not drop:
                     return message
         except Exception as e:
@@ -160,7 +160,7 @@ class VoiceRecogMiddleware(Middleware):
             message.text = ""
         message.text += reply_text
 
-        message.file = None
+        # message.file = None
         message.edit = True
         message.edit_media = False
         coordinator.send_message(message)
