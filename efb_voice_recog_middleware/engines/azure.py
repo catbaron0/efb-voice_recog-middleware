@@ -55,7 +55,9 @@ class AzureSpeech(SpeechEngine):
         )
         self.lang = keys.get('lang', 'zh-CN')
 
-    def recognize(self, path: PathLike, lang: str):
+    def recognize(self, path: PathLike, lang: str = ""):
+        if not lang:
+            lang = self.lang
         if not isinstance(path, str):
             return ["ERROR!", "File must be a path string."]
         if lang not in self.lang_list:
