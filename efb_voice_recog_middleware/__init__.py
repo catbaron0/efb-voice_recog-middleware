@@ -63,12 +63,11 @@ class VoiceRecogMiddleware(Middleware):
     def load_config(self) -> Optional[Dict]:
         config_path: Path = get_config_path(self.middleware_id)
         if not config_path.exists():
-            self.logger.info('The configure file does not exist!')
-            return
+            raise FileNotFoundError('The configure file does not exist!')
         with config_path.open('r') as f:
             d: Dict[str, Any] = yaml.load(f)
             if not d:
-                self.logger.info('Load configure file failed!')
+                raise RuntimeError('Load configure file failed!')
                 return
             return d
 
