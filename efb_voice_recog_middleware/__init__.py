@@ -86,9 +86,11 @@ class VoiceRecogMiddleware(Middleware):
             for future in as_completed(futures):
                 engine_name, lang = futures[future]
                 try:
-                    data = future.result()
+                    data = "; ".join(future.result())
+                    if len(data) > 1000:
+                        data = data[:1000] + " ..."
                     results.append(
-                        f'\n{engine_name} ({lang}): {"; ".join(data)}')
+                        f'\n{engine_name} ({lang}): {data}')
                 except Exception as exc:
                     results.append(f'\n{engine_name} ({lang}): {repr(exc)}')
             return results
@@ -158,6 +160,7 @@ class VoiceRecogMiddleware(Middleware):
         if getattr(message, 'text', None) is None:
             message.text = ""
         message.text += reply_text
+        message.text = message.text[:4000]
 
         # message.file = None
         message.edit = True
