@@ -36,9 +36,7 @@ This middleware is modified based on `ehForwarderBot 1.0`
 
 ### Install 
 ```
-git clone https://github.com/catbaron0/efb-voice_recog-middleware
-cd efb-voice_recog-middleware
-sudo python setup.py install
+pip install efb-voice_recog-middleware
 ```
 
 ### Enable
