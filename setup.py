@@ -7,7 +7,7 @@ if sys.version_info < (3, 6):
 __version__ = ""
 exec(open('efb_voice_recog_middleware/__version__.py').read())
 
-long_description = open('README.rst').read()
+long_description = open('README.md').read()
 
 setup(
     name='efb-voice_recog-middleware',
@@ -16,6 +16,7 @@ setup(
     description='WeChat Middleware for EH Forwarder Bot to convert voice to text,\
                 based on Baidu and Microsoft API.',
     long_description=long_description,
+    long_description_content_type="text/markdown",
     include_package_data=True,
     author='catbaron',
     author_email='catbaron@live.cn',
@@ -25,7 +26,7 @@ setup(
     keywords=['ehforwarderbot', 'EH Forwarder Bot', 'EH Forwarder Bot Slave Channel',
               'wechat', 'weixin', 'chatbot'],
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
         "Intended Audience :: Developers",
         "Intended Audience :: End Users/Desktop",
