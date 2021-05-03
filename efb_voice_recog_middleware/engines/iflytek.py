@@ -187,10 +187,10 @@ class IFlyTekSpeech(SpeechEngine):
                 # 模拟音频采样间隔
                 time.sleep(interval)
 
-        def on_start(self):
+        def on_start(self, wsapp):
             self.is_running.set()
 
-        def on_message(self, message):
+        def on_message(self, wsapp, message):
             data = json.loads(message)
             code = data.get('code', -1)
             if code != 0:
@@ -205,7 +205,7 @@ class IFlyTekSpeech(SpeechEngine):
             if data['data']['status'] == 2:
                 self.done.set()
 
-        def on_error(self, error):
+        def on_error(self, wsapp, error):
             self.result += f"[Error: {error}]"
 
     def recognize(self, path: PathLike, lang: str = ''):

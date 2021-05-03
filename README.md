@@ -10,6 +10,7 @@ This middleware is modified based on `ehForwarderBot 1.0`
 ![example](./example.jpg)
 
 - Baidu
+    - Deprecated for now because my Baidu account is limited by Baidu
     - API from Baidu is available for free. 
     - You need to get `API_KEY` and `SECRET_KEY` following
     http://ai.baidu.com/docs#/ASR-API-PRO/top
